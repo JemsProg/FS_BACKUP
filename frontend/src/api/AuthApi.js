@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const BASE_URL = "http://127.0.0.1:8000/";
+export const BASE_URL = "http://147.93.107.162:8008/";
 const LOGIN_URL = BASE_URL + "api/token/";
 const REGISTER_URL = BASE_URL + "register/";
 
