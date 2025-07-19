@@ -4,20 +4,20 @@ import { useLocation } from "react-router-dom";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
-      setAuthenticated(true);
+      setIsAuthenticated(true);
     } else {
-      setAuthenticated(false);
+      setIsAuthenticated(false);
     }
   }, [location]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, setAuthenticated }}>
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,21 +2,23 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
+import { BASE_URL } from "../api/AuthApi";
+import Loading from "../component/Loading";
 
 const ProductDetails = () => {
   const [productDetail, setProductDetail] = useState({});
   const [availableStock, setAvailableStock] = useState(1);
   const { product_id } = useParams();
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProductDetail = async () => {
       try {
-        const response = await axios.get(
-          `http://127.0.0.1:8000/products/${product_id}/`
-        );
+        const response = await axios.get(`${BASE_URL}products/${product_id}/`);
         setProductDetail(response.data);
         setAvailableStock(1);
+        setIsLoading(false);
       } catch (err) {
         console.error(err);
         setMessage("Failed to load product details.");
@@ -35,7 +37,7 @@ const ProductDetails = () => {
       }
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/cart/add/",
+        `${BASE_URL}cart/add/`,
         {
           product_id: product_id,
           qty: availableStock,
@@ -60,6 +62,14 @@ const ProductDetails = () => {
   };
 
   const maxStock = productDetail.countInStock || 1;
+
+  if (isLoading) {
+    return (
+      <>
+        <Loading />
+      </>
+    );
+  }
 
   return (
     <div className="bg-white">
@@ -89,7 +99,7 @@ const ProductDetails = () => {
           <div className="lg:col-span-2 w-full">
             {productDetail.image ? (
               <img
-                src={`http://127.0.0.1:8000/${productDetail.image}`}
+                src={`${BASE_URL}${productDetail.image}`}
                 alt={productDetail.product_name}
                 className="w-full rounded-lg object-cover"
               />
