@@ -165,7 +165,10 @@ const Cart = () => {
           </div>
 
           <button
-            onClick={() => navigate("/checkout")}
+            onClick={() => {
+              localStorage.setItem("subtotal", subtotal.toFixed(2));
+              navigate("/shipping-details");
+            }}
             className="w-full mt-6 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 text-base font-medium"
           >
             Checkout

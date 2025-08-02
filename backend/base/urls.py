@@ -23,4 +23,9 @@ urlpatterns = [
     path('cart/add/', views.add_to_cart, name='cart_add'),
     path('cart/<int:cart_id>/', views.update_cart_items, name='cart_update'),
     path('cart/<int:cart_id>/delete/', views.remove_cart_item, name='cart_delete'),
+
+    # Payment view ==================
+    path("api/payments/create/", views.create_gcash_payment, name="create-gcash-payment"),
+    path("api/paymongo/webhook/", views.paymongo_webhook, name="paymongo-webhook"),
+
 ]

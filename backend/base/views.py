@@ -3,15 +3,25 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 
+#new imports
+import base64
+import requests
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import now
+import json
+
+
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Product, CartUser
+from .models import Product, CartUser, PaymenMethod, ShippingAddress, OrderItem
 from .serializers import (
     ProductSerializer,
     RegisterSerializer,
     UserSerializer,
     CartItemSerializer,
+    CheckoutSerializer,
 )
 
 
@@ -102,3 +112,110 @@ def remove_cart_item(request, cart_id):
     cart_item = get_object_or_404(CartUser, pk=cart_id, user=request.user)
     cart_item.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_gcash_payment(request):
+    serializer = CheckoutSerializer(data=request.data)
+    if serializer.is_valid():
+        data = serializer.validated_data
+        user = request.user
+        
+        secret_key = "sk_test_6Wu2UUWNZkq1KqyjxjFNEzvZ"
+        encoded_key = base64.b64encode(f"{sk_test_6Wu2UUWNZkq1KqyjxjFNEzvZ}:".encode()).decode()
+
+        header = {
+            "Authorization": f"Basic {encoded_key}",
+            "Content-type": "application/json"
+        }
+
+        payload = {
+                "data": {
+                    "attributes": {
+                        "amount": int(data["total_price"] * 100),  # centavos
+                        "description": "Order Payment",
+                        "remarks": "GCash only",
+                        "redirect": {
+                            "success": "http://localhost:3000/payment-success",
+                            "failed": "http://localhost:3000/payment-failed"
+                        },
+                        "billing": {
+                            "name": data["full_name"],
+                            "email": data["email"],
+                            "phone": data.get("mobile")
+                        },
+                        "payment_method_types": ["gcash"]
+                    }
+                }
+            }
+        
+        response = requests.post("https://api.paymongo.com/v1/links", headers=headers, json=payload)
+        result = response.json()
+        
+        if "data" in result:
+            checkout_url = result["data"]["attributes"]["checkout_url"]
+            paymongo_id = result["data"]["id"]
+            status_str = result["data"]["attributes"]["status"]
+
+            payment = PaymenMethod.object.create(
+                user=user,
+                total_price=data["total_price"],
+                is_paid = False,
+                paymongo_payment_id =paymongo_id,
+                paymongo_status=status_str
+            )
+
+            ShippingAddress.objects.create(
+                payment=payment,
+                full_name=data["full_name"],
+                address=data["address"],
+                city=data["city"],
+                postal_code=data["postal_code"],
+                country=data["country"]
+            )
+            
+            return Response({"checkout_url": checkout_url}, status=200)
+
+        return Response({"error": result}, status=400)
+
+    return Response(serializer.errors, status=400)
+
+@csrf_exempt
+@api_view(['POST'])
+def paymongo_webhook(request):
+    try:
+        payload = json.loads(request.body)
+        event_type = payload.get("data", {}).get("attributes", {}).get("type")
+
+        if event_type == "link.payment.paid":
+            paymongo_id  = payload["data"]["attrbutes"]["data"]["id"]
+
+            payment = PaymenMethod.objects.filter(paymongo_payment_id= paymongo_id)
+
+            if payment and not payment.is_paid:
+                payment.is_paid = True
+                payment.paid_at = now().date()
+                payment.paymongo_status = "paid"
+                payment.save()
+
+                cart_items = CartUser.objects.filter(user=payment.user)
+
+                for item in cart_items:
+                    OrderItem.objects.create(
+                        product=item.product,
+                        payment=payment,
+                        qty=item.qty,
+                        price=item.product.product_price
+                    )
+
+                cart_items.delete()
+
+                return Response({"message": "Payment confirmed. Order items created."}, status=200)
+
+        return Response({"message": "Webhook received. No action taken."}, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+                    

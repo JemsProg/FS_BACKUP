@@ -42,3 +42,13 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartUser
         fields = ['cart_id', 'product', 'product_id', 'qty']
+
+class CheckoutSerializer(serializers.Serializer):
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    full_name = serializers.CharField(max_length=255)
+    address = serializers.CharField(max_length=255)
+    city = serializers.CharField(max_length=100)
+    postal_code = serializers.CharField(max_length=20)
+    country = serializers.CharField(max_length=100)
+    email = serializers.EmailField()
+    mobile = serializers.CharField(max_length=15, required=False)

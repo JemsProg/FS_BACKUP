@@ -13,6 +13,7 @@ import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductDetails from "./pages/ProductDetails";
+import ShippingDetails from "./pages/ShippingDetails";
 
 import { AuthProvider } from "./context/AuthProvider";
 import PrivateRoute from "./component/PrivateRoute";
@@ -47,6 +48,15 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/shipping-details"
+              element={
+                <PrivateRoute>
+                  <ShippingDetails />
+                </PrivateRoute>
+              }
+            />
+
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
           </Routes>
